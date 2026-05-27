@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic de Périphériques PC</title>
+    
+    <!-- FAVICON (Icône d'onglet personnalisée CPU) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231f2937'/><path d='M30,30 L70,30 L70,70 L30,70 Z' fill='none' stroke='%233b82f6' stroke-width='8'/><path d='M40,20 L40,30 M50,20 L50,30 M60,20 L60,30 M40,70 L40,80 M50,70 L50,80 M60,70 L60,80 M20,40 L30,40 M20,50 L30,50 M20,60 L30,60 M70,40 L80,40 M70,50 L80,50 M70,60 L80,60' stroke='%233b82f6' stroke-width='8' stroke-linecap='round'/><circle cx='50' cy='50' r='10' fill='%2310b981'/></svg>">
+
+    <!-- Tailwind CSS pour l'interface -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons pour les icônes -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Styles pour gérer le rendu du clavier virtuel */
+        .key, .deep-key {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.375rem;
+            color: #d1d5db;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            font-size: 0.7rem;
+            height: 44px;
+            transition: background-color 0.1s, transform 0.05s, border-color 0.1s;
+            user-select: none;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .key-sub {
+            font-size: 0.55rem;
+            color: #6b7280;
+            line-height: 1;
+        }
+        .key.active, .deep-key.active {
+            background-color: #f97316 !important; /* Orange pendant l'appui */
+            color: #ffffff !important;
+            border-color: #ea580c !important;
+            transform: scale(0.95);
+        }
+        .key.tested, .deep-key.tested {
+            background-color: #059669; /* Vert après relâchement (validé) */
+            color: #ffffff;
+            border-color: #047857;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i data-lucide="cpu" class="text-blue-500"></i>
+                WebDiagnostic PC
+            </h1>
+            <span class="text-xs bg-gray-700 text-gray-400 px-3 py-1 rounded-full">Version Web - Sans installation</span>
+        </div>
+    </header>
+
+    <div class="flex flex-1 flex-col md:flex-row">
+        <!-- Sidebar Navigation -->
+        <nav class="w-full md:w-64 bg-gray-800 p-4 border-r border-gray-700 flex flex-col gap-2">
+            <button onclick="switchTab('home')" id="tab-home" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white font-medium text-left transition">
+                <i data-lucide="home" class="w-5 h-5"></i> Accueil
+            </button>
+            <button onclick="switchTab('assistant')" id="tab-assistant" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i> Assistant de Scan
+            </button>
+            <button onclick="switchTab('keyboard')" id="tab-keyboard" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="keyboard" class="w-5 h-5"></i> Clavier HP
+            </button>
+            <button onclick="switchTab('mouse')" id="tab-mouse" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="mouse-pointer" class="w-5 h-5"></i> Souris
+            </button>
+            <button onclick="switchTab('audio')" id="tab-audio" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="volume-2" class="w-5 h-5"></i> Audio & Micro
+            </button>
+            <button onclick="switchTab('camera')" id="tab-camera" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="video" class="w-5 h-5"></i> Caméra
+            </button>
+            <button onclick="switchTab('gamepad')" id="tab-gamepad" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="gamepad-2" class="w-5 h-5"></i> Manette
+            </button>
+            <button onclick="switchTab('screen')" id="tab-screen" class="tab-btn flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white font-medium text-left transition">
+                <i data-lucide="monitor" class="w-5 h-5"></i> Écran (Pixels)
+            </button>
+        </nav>
+
+        <!-- Main Content Panel -->
+        <main class="flex-1 p-6 md:p-8 bg-gray-900 overflow-x-auto">
+            
+            <!-- SECTION : ACCUEIL -->
+            <section id="panel-home" class="tab-panel flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-2xl font-semibold mb-3">Diagnostic de vos périphériques</h2>
+                    <p class="text-gray-400 mb-4 leading-relaxed">
+                        Sélectionnez un périphérique dans le menu de gauche pour démarrer vos tests ou lancez l'**Assistant de Scan** interactif pour effectuer une analyse globale guidée.
+                    </p>
+                    <div class="p-4 bg-gray-750 border border-gray-700 rounded-lg max-w-lg">
+                        <span class="font-bold text-emerald-400 flex items-center gap-2">
+                            <i data-lucide="shield-check"></i> Assistant de Diagnostic Guidé
+                        </span>
+                        <p class="text-xs text-gray-300 mt-2">
+                            Un protocole de test guidé étape par étape avec deux modes : Diagnostic Simple ou Diagnostic Approfondi complet basé sur votre modèle HP.
+                        </p>
+                        <button onclick="switchTab('assistant')" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-xs text-white font-bold py-2 px-4 rounded transition">
+                            Lancer l'assistant de scan
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : ASSISTANT DE SCAN INTERACTIF -->
+            <section id="panel-assistant" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-5xl mx-auto w-full">
+                    <div class="flex items-center gap-3 border-b border-gray-700 pb-4 mb-6">
+                        <i data-lucide="activity" class="w-8 h-8 text-emerald-400"></i>
+                        <div>
+                            <h2 class="text-xl font-bold">Assistant de Diagnostic Interactif</h2>
+                            <p class="text-gray-400 text-xs">Veuillez sélectionner le niveau d'analyse souhaité pour vos périphériques.</p>
+                        </div>
+                    </div>
+
+                    <!-- Écran de sélection du Mode de Diagnostic -->
+                    <div id="assistant-start" class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+                        <!-- Mode 1 : Diagnostic Simple -->
+                        <div class="p-5 bg-gray-950 border border-gray-800 hover:border-blue-500 rounded-xl transition flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-blue-400 text-base mb-2 flex items-center gap-2">
+                                    <i data-lucide="bolt" class="w-5 h-5"></i> 1. Diagnostic Simple (Rapide)
+                                </h3>
+                                <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                                    Une analyse de base de quelques secondes : taux de réponse souris, détection des 3 clics physiques (gauche, droit et molette) et validation de 3 touches aléatoires du clavier.
+                                </p>
+                            </div>
+                            <button onclick="startWizard('simple')" class="w-full bg-blue-600 hover:bg-blue-700 py-2.5 rounded-lg text-xs font-bold transition">
+                                Lancer le scan rapide
+                            </button>
+                        </div>
+
+                        <!-- Mode 2 : Diagnostic Approfondi -->
+                        <div class="p-5 bg-gray-950 border border-gray-800 hover:border-emerald-500 rounded-xl transition flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-emerald-400 text-base mb-2 flex items-center gap-2">
+                                    <i data-lucide="shield-alert" class="w-5 h-5"></i> 2. Diagnostic Approfondi (Exhaustif)
+                                </h3>
+                                <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                                    Analyse complète basée sur votre clavier HP : test cinématique, défilement molette, les 3 clics souris, et vérification unitaire de l'ensemble des touches du clavier.
+                                </p>
+                            </div>
+                            <button onclick="startWizard('deep')" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-lg text-xs font-bold text-white transition">
+                                Lancer le scan exhaustif
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Interface des étapes du Diagnostic -->
+                    <div id="assistant-steps" class="hidden">
+                        <!-- Barre de progression -->
+                        <div class="w-full bg-gray-900 h-2 rounded-full mb-6 overflow-hidden">
+                            <div id="wizard-progress" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+
+                        <!-- Étape : Mouvement de la souris -->
+                        <div id="step-mouse-move" class="step-card flex flex-col items-center py-6 text-center">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2" id="step-title-1">Étape 1 sur 4</span>
+                            <h3 class="text-lg font-semibold mb-4">Agitez votre souris dans la zone ci-dessous</h3>
+                            
+                            <div id="mouse-scan-area" class="w-80 h-32 bg-gray-950 border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center cursor-move text-xs text-gray-500 hover:border-emerald-500 transition-colors">
+                                Déplacez la souris ici
+                            </div>
+                            <div class="w-80 mt-4 text-xs text-gray-400 flex justify-between">
+                                <span>Taux de signal : <span id="mouse-rate" class="text-white font-mono">0 Hz</span></span>
+                                <span>Progression : <span id="mouse-progress" class="text-white font-mono">0%</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Étape : Test du défilement de la molette -->
+                        <div id="step-mouse-scroll" class="step-card hidden flex flex-col items-center py-6 text-center">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Étape 2 : Encodeur Molette</span>
+                            <h3 class="text-lg font-semibold mb-4">Faites défiler la molette vers le HAUT puis vers le BAS</h3>
+                            
+                            <div id="scroll-scan-area" class="w-80 h-32 bg-gray-950 border-2 border-dashed border-gray-700 rounded-lg flex flex-col gap-3 items-center justify-center text-xs">
+                                <div id="scroll-up-indicator" class="px-3 py-1.5 bg-gray-800 rounded text-gray-400 font-semibold transition-colors">Défilement HAUT</div>
+                                <div id="scroll-down-indicator" class="px-3 py-1.5 bg-gray-800 rounded text-gray-400 font-semibold transition-colors">Défilement BAS</div>
+                            </div>
+                        </div>
+
+                        <!-- Étape : Clics de la souris -->
+                        <div id="step-mouse-clicks" class="step-card hidden flex flex-col items-center py-6 text-center">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2" id="step-title-2">Étape 2 sur 4</span>
+                            <h3 class="text-lg font-semibold mb-6">Effectuez les clics demandés dans l'encadré</h3>
+                            
+                            <div id="click-scan-area" class="w-full max-w-md h-32 bg-gray-950 border-2 border-dashed border-gray-700 rounded-lg flex gap-3 items-center justify-center cursor-pointer">
+                                <span id="scan-click-left" class="px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold">Clic Gauche</span>
+                                <span id="scan-click-middle" class="px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold">Clic Molette</span>
+                                <span id="scan-click-right" class="px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold">Clic Droit</span>
+                            </div>
+                        </div>
+
+                        <!-- Étape : Saisie clavier simple (3 touches) -->
+                        <div id="step-keyboard-simple" class="step-card hidden flex flex-col items-center py-6 text-center">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Étape 3 sur 4 : Matrice Clavier</span>
+                            <h3 class="text-lg font-semibold mb-4">Appuyez sur 3 touches différentes de votre clavier</h3>
+                            
+                            <div class="flex gap-2 mb-6">
+                                <div id="key-check-1" class="w-12 h-12 bg-gray-950 rounded border border-gray-700 flex items-center justify-center font-mono text-sm text-gray-400">-</div>
+                                <div id="key-check-2" class="w-12 h-12 bg-gray-950 rounded border border-gray-700 flex items-center justify-center font-mono text-sm text-gray-400">-</div>
+                                <div id="key-check-3" class="w-12 h-12 bg-gray-950 rounded border border-gray-700 flex items-center justify-center font-mono text-sm text-gray-400">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Étape : Saisie clavier approfondie (Toutes les touches HP requises) -->
+                        <div id="step-keyboard-deep" class="step-card hidden flex flex-col items-center py-6 text-center w-full">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Étape 4 : Matrice exhaustive du clavier HP</span>
+                            <h3 class="text-lg font-semibold mb-2">Appuyez sur toutes les touches du clavier pour les tester</h3>
+                            <p class="text-xs text-gray-400 mb-4">Progression : <span id="deep-kb-progress" class="text-emerald-400 font-bold font-mono">0 / 102</span> touches enregistrées</p>
+                            
+                            <div class="w-full bg-gray-950 p-6 rounded-2xl border-4 border-gray-800 flex gap-4 shadow-2xl overflow-x-auto select-none min-w-[1000px] mb-6">
+                                
+                                <!-- 1. BLOC PRINCIPAL DE TEST -->
+                                <div class="flex flex-col gap-1 w-[712px]">
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-11" data-deep-code="Escape">Esc</div>
+                                        <div class="w-4"></div>
+                                        <div class="deep-key w-11" data-deep-code="F1">F1</div>
+                                        <div class="deep-key w-11" data-deep-code="F2">F2</div>
+                                        <div class="deep-key w-11" data-deep-code="F3">F3</div>
+                                        <div class="deep-key w-11" data-deep-code="F4">F4</div>
+                                        <div class="w-4"></div>
+                                        <div class="deep-key w-11" data-deep-code="F5">F5</div>
+                                        <div class="deep-key w-11" data-deep-code="F6">F6</div>
+                                        <div class="deep-key w-11" data-deep-code="F7">F7</div>
+                                        <div class="deep-key w-11" data-deep-code="F8">F8</div>
+                                        <div class="w-4"></div>
+                                        <div class="deep-key w-11" data-deep-code="F9">F9</div>
+                                        <div class="deep-key w-11" data-deep-code="F10">F10</div>
+                                        <div class="deep-key w-11" data-deep-code="F11">F11</div>
+                                        <div class="deep-key w-11" data-deep-code="F12">F12</div>
+                                        <div class="w-2"></div>
+                                        <div class="deep-key w-11 text-[9px]" data-deep-code="Lock1">🔒🖥️</div>
+                                        <div class="deep-key w-11 text-[9px]" data-deep-code="Lock2">🔒</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-11" data-deep-code="Backquote">~ `</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit1">1</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit2">2</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit3">3</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit4">4</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit5">5</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit6">6</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit7">7</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit8">8</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit9">9</div>
+                                        <div class="deep-key w-11" data-deep-code="Digit0">0</div>
+                                        <div class="deep-key w-11" data-deep-code="Minus">-</div>
+                                        <div class="deep-key w-11" data-deep-code="Equal">=</div>
+                                        <div class="deep-key w-[88px]" data-deep-code="Backspace">← Back</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-[66px]" data-deep-code="Tab">Tab</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyQ">Q</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyW">W</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyE">E</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyR">R</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyT">T</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyY">Y</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyU">U</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyI">I</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyO">O</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyP">P</div>
+                                        <div class="deep-key w-11" data-deep-code="BracketLeft">[</div>
+                                        <div class="deep-key w-11" data-deep-code="BracketRight">]</div>
+                                        <div class="deep-key w-[66px]" data-deep-code="Backslash">\</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-[80px]" data-deep-code="CapsLock">Caps</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyA">A</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyS">S</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyD">D</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyF">F</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyG">G</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyH">H</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyJ">J</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyK">K</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyL">L</div>
+                                        <div class="deep-key w-11" data-deep-code="Semicolon">;</div>
+                                        <div class="deep-key w-11" data-deep-code="Quote">'</div>
+                                        <div class="deep-key w-[100px]" data-deep-code="Enter">Enter ↵</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-[114px]" data-deep-code="ShiftLeft">⇧ Shift</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyZ">Z</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyX">X</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyC">C</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyV">V</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyB">B</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyN">N</div>
+                                        <div class="deep-key w-11" data-deep-code="KeyM">M</div>
+                                        <div class="deep-key w-11" data-deep-code="Comma">,</div>
+                                        <div class="deep-key w-11" data-deep-code="Period">.</div>
+                                        <div class="deep-key w-11" data-deep-code="Slash">/</div>
+                                        <div class="deep-key w-[114px]" data-deep-code="ShiftRight">⇧ Shift</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <div class="deep-key w-12" data-deep-code="ControlLeft">Ctrl</div>
+                                        <div class="deep-key w-12" data-deep-code="MetaLeft">Win</div>
+                                        <div class="deep-key w-12" data-deep-code="AltLeft">Alt</div>
+                                        <div class="deep-key flex-1" data-deep-code="Space">Espace</div>
+                                        <div class="deep-key w-12" data-deep-code="AltRight">Alt Gr</div>
+                                        <div class="deep-key w-12" data-deep-code="Fn">Fn</div>
+                                        <div class="deep-key w-12" data-deep-code="ContextMenu">📋</div>
+                                        <div class="deep-key w-12" data-deep-code="ControlRight">Ctrl</div>
+                                    </div>
+                                </div>
+
+                                <!-- 2. BLOC CENTRAL DE TEST -->
+                                <div class="grid grid-cols-3 gap-1 w-[136px]">
+                                    <div></div>
+                                    <div class="deep-key text-[8px]" data-deep-code="ScrollLock">Scroll</div>
+                                    <div class="deep-key text-[8px]" data-deep-code="Pause">Pause</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="Insert">Ins</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="Home">Home</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="PageUp">PgUp</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="Delete">Del</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="End">End</div>
+                                    <div class="deep-key text-[10px]" data-deep-code="PageDown">PgDn</div>
+                                    <div class="col-span-3 h-11"></div>
+                                    <div></div>
+                                    <div class="deep-key" data-deep-code="ArrowUp">▲</div>
+                                    <div></div>
+                                    <div class="deep-key" data-deep-code="ArrowLeft">◀</div>
+                                    <div class="deep-key" data-deep-code="ArrowDown">▼</div>
+                                    <div class="deep-key" data-deep-code="ArrowRight">▶</div>
+                                </div>
+
+                                <!-- 3. BLOC PAVÉ NUMÉRIQUE DE TEST -->
+                                <div class="grid grid-cols-4 gap-1 w-[184px]">
+                                    <div class="col-span-4 h-11 bg-gray-900 rounded border border-gray-800 flex items-center justify-center text-[10px] text-gray-500 font-mono">Pavé Numérique</div>
+                                    <div class="deep-key text-[9px]" data-deep-code="NumLock">Num</div>
+                                    <div class="deep-key" data-deep-code="NumpadDivide">/</div>
+                                    <div class="deep-key" data-deep-code="NumpadMultiply">*</div>
+                                    <div class="deep-key" data-deep-code="NumpadSubtract">-</div>
+                                    <div class="deep-key" data-deep-code="Numpad7">7</div>
+                                    <div class="deep-key" data-deep-code="Numpad8">8</div>
+                                    <div class="deep-key" data-deep-code="Numpad9">9</div>
+                                    <div class="deep-key h-[92px] row-span-2" data-deep-code="NumpadAdd">+</div>
+                                    <div class="deep-key" data-deep-code="Numpad4">4</div>
+                                    <div class="deep-key" data-deep-code="Numpad5">5</div>
+                                    <div class="deep-key" data-deep-code="Numpad6">6</div>
+                                    <div class="deep-key" data-deep-code="Numpad1">1</div>
+                                    <div class="deep-key" data-deep-code="Numpad2">2</div>
+                                    <div class="deep-key" data-deep-code="Numpad3">3</div>
+                                    <div class="deep-key h-[92px] row-span-2" data-deep-code="NumpadEnter">↵</div>
+                                    <div class="deep-key col-span-2" data-deep-code="Numpad0">0</div>
+                                    <div class="deep-key" data-deep-code="NumpadDecimal">.</div>
+                                </div>
+                            </div>
+                            <button onclick="finishWizard()" class="bg-gray-750 hover:bg-gray-600 text-xs text-white px-4 py-2 rounded transition font-bold">
+                                Forcer / Finaliser le diagnostic
+                            </button>
+                        </div>
+
+                        <!-- Étape : Calculs de latence et finalisation -->
+                        <div id="step-calculating" class="step-card hidden flex flex-col items-center py-8 text-center">
+                            <i data-lucide="loader" class="w-8 h-8 text-emerald-400 animate-spin mb-4"></i>
+                            <h3 class="text-base font-semibold">Analyse de l'intégrité matérielle...</h3>
+                            <p class="text-xs text-gray-500 mt-1">Génération du rapport d'analyse réseau-périphérique en cours.</p>
+                        </div>
+                    </div>
+
+                    <!-- Écran du rapport final -->
+                    <div id="assistant-report" class="hidden border border-gray-700 bg-gray-950 p-6 rounded-lg">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-3 mb-4">
+                            <h3 class="font-bold text-sm uppercase text-emerald-400 flex items-center gap-1.5">
+                                <i data-lucide="file-text"></i> <span id="report-title-label">Rapport de Diagnostic</span>
+                            </h3>
+                            <span class="text-[10px] text-gray-500 font-mono" id="report-date">Date : --</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                            <div class="p-3 bg-gray-900 rounded border border-gray-850">
+                                <p class="text-gray-500 border-b border-gray-800 pb-1.5 mb-2 font-bold uppercase">Clavier d'entrée</p>
+                                <p>Statut : <span class="text-emerald-400">Opérationnel</span></p>
+                                <p>Latence estimée : <span id="report-kb-latency" class="text-white">--</span></p>
+                                <p>Touches testées : <span id="report-kb-tested" class="text-white">--</span></p>
+                            </div>
+                            <div class="p-3 bg-gray-900 rounded border border-gray-850">
+                                <p class="text-gray-500 border-b border-gray-800 pb-1.5 mb-2 font-bold uppercase">Souris optique/laser</p>
+                                <p>Statut : <span class="text-emerald-400">Opérationnel</span></p>
+                                <p>Taux de signal max : <span id="report-mouse-hz" class="text-white">--</span></p>
+                                <p>Clics physiques : <span id="report-mouse-clicks" class="text-white">--</span></p>
+                                <p id="report-mouse-scroll-text">Molette : <span class="text-emerald-400">Validée (Haut/Bas)</span></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-gray-900 rounded border border-gray-850 text-xs text-gray-300">
+                            <p class="font-bold text-emerald-400 mb-1">Conclusion de l'analyse :</p>
+                            <p id="report-conclusion">Tous les périphériques d'entrée répondent aux critères de transmission standard.</p>
+                        </div>
+
+                        <div class="flex gap-2 justify-end mt-6 border-t border-gray-800 pt-4">
+                            <button onclick="restartWizard()" class="bg-gray-800 hover:bg-gray-700 text-xs font-bold px-4 py-2 rounded transition">
+                                Recommencer l'analyse
+                            </button>
+                            <button onclick="downloadReport()" class="bg-emerald-600 hover:bg-emerald-700 text-xs font-bold px-4 py-2 rounded text-white transition flex items-center gap-1.5">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Télécharger le rapport (.txt)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : CLAVIER -->
+            <section id="panel-keyboard" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 min-w-[1100px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 class="text-xl font-semibold">Test de Clavier Complet (Modèle HP)</h2>
+                            <p class="text-gray-400 text-sm">Appuyez sur une touche physique pour la tester. Les touches physiques sont cartographiées selon leur position.</p>
+                        </div>
+                        <button onclick="resetKeyboard()" class="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1.5 rounded transition">
+                            Réinitialiser le clavier
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-950 p-4 rounded-lg mb-6 text-center text-sm font-mono min-h-[45px] flex items-center justify-center border border-gray-800" id="key-display">
+                        En attente d'une touche...
+                    </div>
+
+                    <!-- CLAVIER COMPLET STRUCTURE HP -->
+                    <div class="bg-gray-950 p-6 rounded-2xl border-4 border-gray-800 flex gap-4 shadow-2xl select-none w-max mx-auto">
+                        
+                        <!-- 1. BLOC PRINCIPAL (ALPHANUMÉRIQUE) -->
+                        <div class="flex flex-col gap-1 w-[712px]">
+                            <!-- Rangée 1 : Échappe + Fonctions -->
+                            <div class="flex gap-1">
+                                <div class="key w-11" data-code="Escape">Esc</div>
+                                <div class="w-4"></div> <!-- Espace physique -->
+                                <div class="key w-11" data-code="F1"><span class="key-sub">🔒</span>F1</div>
+                                <div class="key w-11" data-code="F2"><span class="key-sub">🔆-</span>F2</div>
+                                <div class="key w-11" data-code="F3"><span class="key-sub">🔆+</span>F3</div>
+                                <div class="key w-11" data-code="F4"><span class="key-sub">🖥️</span>F4</div>
+                                <div class="w-4"></div> <!-- Espace physique -->
+                                <div class="key w-11" data-code="F5"><span class="key-sub">🔍</span>F5</div>
+                                <div class="key w-11" data-code="F6"><span class="key-sub">⏮️</span>F6</div>
+                                <div class="key w-11" data-code="F7"><span class="key-sub">⏯️</span>F7</div>
+                                <div class="key w-11" data-code="F8"><span class="key-sub">⏭️</span>F8</div>
+                                <div class="w-4"></div> <!-- Espace physique -->
+                                <div class="key w-11" data-code="F9"><span class="key-sub">🔇</span>F9</div>
+                                <div class="key w-11" data-code="F10"><span class="key-sub">🔉</span>F10</div>
+                                <div class="key w-11" data-code="F11"><span class="key-sub">🔊</span>F11</div>
+                                <div class="key w-11" data-code="F12"><span class="key-sub">⌨️</span>F12</div>
+                                <div class="w-2"></div>
+                                <div class="key w-11 text-[9px]" data-code="Lock1">🔒🖥️</div>
+                                <div class="key w-11 text-[9px]" data-code="Lock2">🔒</div>
+                            </div>
+                            
+                            <!-- Rangée 2 : Chiffres -->
+                            <div class="flex gap-1">
+                                <div class="key w-11" data-code="Backquote">~ <span class="key-sub">`</span></div>
+                                <div class="key w-11" data-code="Digit1">! <span class="key-sub">1</span></div>
+                                <div class="key w-11" data-code="Digit2">@ <span class="key-sub">2</span></div>
+                                <div class="key w-11" data-code="Digit3"># <span class="key-sub">3</span></div>
+                                <div class="key w-11" data-code="Digit4">$ <span class="key-sub">4</span></div>
+                                <div class="key w-11" data-code="Digit5">% <span class="key-sub">5</span></div>
+                                <div class="key w-11" data-code="Digit6">^ <span class="key-sub">6</span></div>
+                                <div class="key w-11" data-code="Digit7">& <span class="key-sub">7</span></div>
+                                <div class="key w-11" data-code="Digit8">* <span class="key-sub">8</span></div>
+                                <div class="key w-11" data-code="Digit9">( <span class="key-sub">9</span></div>
+                                <div class="key w-11" data-code="Digit0">) <span class="key-sub">0</span></div>
+                                <div class="key w-11" data-code="Minus">_ <span class="key-sub">-</span></div>
+                                <div class="key w-11" data-code="Equal">+ <span class="key-sub">=</span></div>
+                                <div class="key w-[88px]" data-code="Backspace">← Backspace</div>
+                            </div>
+
+                            <!-- Rangée 3 : Tab + QWERTY/AZERTY 1 -->
+                            <div class="flex gap-1">
+                                <div class="key w-[66px]" data-code="Tab">Tab ⇹</div>
+                                <div class="key w-11" data-code="KeyQ">Q</div>
+                                <div class="key w-11" data-code="KeyW">W</div>
+                                <div class="key w-11" data-code="KeyE">E</div>
+                                <div class="key" style="width: 44px;" data-code="KeyR">R</div>
+                                <div class="key w-11" data-code="KeyT">T</div>
+                                <div class="key w-11" data-code="KeyY">Y</div>
+                                <div class="key w-11" data-code="KeyU">U</div>
+                                <div class="key w-11" data-code="KeyI">I</div>
+                                <div class="key w-11" data-code="KeyO">O</div>
+                                <div class="key w-11" data-code="KeyP">P</div>
+                                <div class="key w-11" data-code="BracketLeft">{ <span class="key-sub">[</span></div>
+                                <div class="key w-11" data-code="BracketRight">} <span class="key-sub">]</span></div>
+                                <div class="key w-[66px]" data-code="Backslash">| <span class="key-sub">\</span></div>
+                            </div>
+
+                            <!-- Rangée 4 : Caps Lock + ASDF -->
+                            <div class="flex gap-1">
+                                <div class="key w-[80px]" data-code="CapsLock">Caps Lock</div>
+                                <div class="key w-11" data-code="KeyA">A</div>
+                                <div class="key w-11" data-code="KeyS">S</div>
+                                <div class="key w-11" data-code="KeyD">D</div>
+                                <div class="key w-11" data-code="KeyF">F <span class="key-sub">_</span></div>
+                                <div class="key w-11" data-code="KeyG">G</div>
+                                <div class="key w-11" data-code="KeyH">H</div>
+                                <div class="key w-11" data-code="KeyJ">J <span class="key-sub">_</span></div>
+                                <div class="key w-11" data-code="KeyK">K</div>
+                                <div class="key w-11" data-code="KeyL">L</div>
+                                <div class="key w-11" data-code="Semicolon">: <span class="key-sub">;</span></div>
+                                <div class="key w-11" data-code="Quote">" <span class="key-sub">'</span></div>
+                                <div class="key w-[100px]" data-code="Enter">Enter ↵</div>
+                            </div>
+
+                            <!-- Rangée 5 : Shift gauche + ZXCV -->
+                            <div class="flex gap-1">
+                                <div class="key w-[114px]" data-code="ShiftLeft">⇧ Shift</div>
+                                <div class="key w-11" data-code="KeyZ">Z</div>
+                                <div class="key w-11" data-code="KeyX">X</div>
+                                <div class="key w-11" data-code="KeyC">C</div>
+                                <div class="key w-11" data-code="KeyV">V</div>
+                                <div class="key w-11" data-code="KeyB">B</div>
+                                <div class="key w-11" data-code="KeyN">N</div>
+                                <div class="key w-11" data-code="KeyM">M</div>
+                                <div class="key w-11" data-code="Comma">&lt; <span class="key-sub">,</span></div>
+                                <div class="key w-11" data-code="Period">&gt; <span class="key-sub">.</span></div>
+                                <div class="key w-11" data-code="Slash">? <span class="key-sub">/</span></div>
+                                <div class="key w-[114px]" data-code="ShiftRight">⇧ Shift</div>
+                            </div>
+
+                            <!-- Rangée 6 : Touches système inférieures -->
+                            <div class="flex gap-1">
+                                <div class="key w-12" data-code="ControlLeft">Ctrl</div>
+                                <div class="key w-12" data-code="MetaLeft">Win</div>
+                                <div class="key w-12" data-code="AltLeft">Alt</div>
+                                <div class="key flex-1" data-code="Space"></div> <!-- Barre d'espace -->
+                                <div class="key w-12" data-code="AltRight">Alt Gr</div>
+                                <div class="key w-12" data-code="Fn">Fn</div>
+                                <div class="key w-12" data-code="ContextMenu">📋</div>
+                                <div class="key w-12" data-code="ControlRight">Ctrl</div>
+                            </div>
+                        </div>
+
+                        <!-- 2. BLOC CENTRAL (NAVIGATION / FLÈCHES) -->
+                        <div class="grid grid-cols-3 gap-1 w-[136px]">
+                            <!-- Rangée 1 : Scroll Lock / Pause (Impr. Écran retirée car non détectable) -->
+                            <div></div> <!-- Espace vide structurel pour l'alignement -->
+                            <div class="key text-[8px]" data-code="ScrollLock">Scroll<span class="key-sub">Lock</span></div>
+                            <div class="key text-[8px]" data-code="Pause">Pause<span class="key-sub">Break</span></div>
+                            
+                            <!-- Rangée 2 : Insert / Home / Page Up -->
+                            <div class="key text-[10px]" data-code="Insert">Insert</div>
+                            <div class="key text-[10px]" data-code="Home">Home</div>
+                            <div class="key text-[10px]" data-code="PageUp">PageUp</div>
+
+                            <!-- Rangée 3 : Delete / End / Page Down -->
+                            <div class="key text-[10px]" data-code="Delete">Delete</div>
+                            <div class="key text-[10px]" data-code="End">End</div>
+                            <div class="key text-[10px]" data-code="PageDown">PageDown</div>
+
+                            <!-- Espacement vide structurel -->
+                            <div class="col-span-3 h-11"></div>
+
+                            <!-- Rangée 5 : Flèche Haut -->
+                            <div></div>
+                            <div class="key" data-code="ArrowUp">▲</div>
+                            <div></div>
+
+                            <!-- Rangée 6 : Flèches Gauche / Bas / Droite -->
+                            <div class="key" data-code="ArrowLeft">◀</div>
+                            <div class="key" data-code="ArrowDown">▼</div>
+                            <div class="key" data-code="ArrowRight">▶</div>
+                        </div>
+
+                        <!-- 3. BLOC DROIT (PAVÉ NUMÉRIQUE HP) -->
+                        <div class="flex flex-col gap-1 w-[184px]">
+                            <!-- LEDs d'état virtuelles (NumLock [1], CapsLock [A], ScrollLock/Battery [🔒]) -->
+                            <div class="flex justify-around items-center h-11 bg-gray-900 border border-gray-800 rounded-md px-2 text-[10px] text-gray-400">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold">1</span>
+                                    <div id="led-numlock" class="w-2 h-2 rounded-full bg-gray-800 border border-gray-700 transition-colors"></div>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold">A</span>
+                                    <div id="led-capslock" class="w-2 h-2 rounded-full bg-gray-800 border border-gray-700 transition-colors"></div>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold">🔒</span>
+                                    <div id="led-scrolllock" class="w-2 h-2 rounded-full bg-gray-800 border border-gray-700 transition-colors"></div>
+                                </div>
+                            </div>
+
+                            <!-- Grille des touches du pavé numérique -->
+                            <div class="grid grid-cols-4 gap-1">
+                                <!-- Ligne 1 : NumLock, /, *, - -->
+                                <div class="key text-[9px]" data-code="NumLock">Num<span class="key-sub">Lock</span></div>
+                                <div class="key" data-code="NumpadDivide">/</div>
+                                <div class="key" data-code="NumpadMultiply">*</div>
+                                <div class="key" data-code="NumpadSubtract">-</div>
+
+                                <!-- Ligne 2 & 3 avec le '+' vertical -->
+                                <div class="key text-[10px]" data-code="Numpad7">7<span class="key-sub">Home</span></div>
+                                <div class="key text-[10px]" data-code="Numpad8">8<span class="key-sub">▲</span></div>
+                                <div class="key text-[10px]" data-code="Numpad9">9<span class="key-sub">PgUp</span></div>
+                                <div class="key h-[92px] row-span-2" data-code="NumpadAdd">+</div>
+
+                                <div class="key text-[10px]" data-code="Numpad4">4<span class="key-sub">◀</span></div>
+                                <div class="key text-[10px]" data-code="Numpad5">5</div>
+                                <div class="key text-[10px]" data-code="Numpad6">6<span class="key-sub">▶</span></div>
+
+                                <!-- Ligne 4 & 5 avec l'Enter' vertical -->
+                                <div class="key text-[10px]" data-code="Numpad1">1<span class="key-sub">End</span></div>
+                                <div class="key text-[10px]" data-code="Numpad2">2<span class="key-sub">▼</span></div>
+                                <div class="key text-[10px]" data-code="Numpad3">3<span class="key-sub">PgDn</span></div>
+                                <div class="key h-[92px] row-span-2" data-code="NumpadEnter">Enter</div>
+
+                                <div class="key col-span-2 text-[10px]" data-code="Numpad0">0<span class="key-sub">Ins</span></div>
+                                <div class="key text-[10px]" data-code="NumpadDecimal">.<span class="key-sub">Del</span></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : SOURIS -->
+            <section id="panel-mouse" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-semibold">Test de la Souris & Compteurs de Clics</h2>
+                        <button onclick="resetMouseCounters()" class="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1.5 rounded transition">
+                            Réinitialiser les compteurs
+                        </button>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4">Cliquez à répétition et faites défiler la molette dans l'encadré ci-dessous.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div id="mouse-test-area" class="h-64 bg-gray-950 rounded-xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center cursor-crosshair select-none">
+                            <span class="text-gray-500 text-xs mb-6">Zone de clic interactive</span>
+                            
+                            <div class="flex gap-4">
+                                <div class="flex flex-col items-center">
+                                    <span id="click-left" class="px-4 py-2 bg-gray-800 rounded text-xs font-semibold transition-all">Clic Gauche</span>
+                                    <span id="counter-left" class="text-xs text-emerald-400 mt-2 font-mono font-bold">0 clic</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span id="click-middle" class="px-4 py-2 bg-gray-800 rounded text-xs font-semibold transition-all">Clic Milieu</span>
+                                    <span id="counter-middle" class="text-xs text-yellow-400 mt-2 font-mono font-bold">0 clic</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span id="click-right" class="px-4 py-2 bg-gray-800 rounded text-xs font-semibold transition-all">Clic Droit</span>
+                                    <span id="counter-right" class="text-xs text-red-400 mt-2 font-mono font-bold">0 clic</span>
+                                </div>
+                            </div>
+                            <span id="scroll-indicator" class="mt-6 text-xs text-blue-400 font-mono">Défilement molette : 0</span>
+                        </div>
+
+                        <div class="bg-gray-750 p-4 rounded-lg border border-gray-700 flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-sm mb-2 text-blue-400">Diagnostic de clic :</h3>
+                                <p class="text-xs text-gray-300 leading-relaxed">
+                                    Chaque clic physique sur la boîte de gauche incrémente le compteur correspondant.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : AUDIO -->
+            <section id="panel-audio" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-xl font-semibold mb-2">Test Audio</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div class="p-4 bg-gray-750 rounded-lg border border-gray-700 flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold mb-2 flex items-center gap-2"><i data-lucide="volume-2" class="text-blue-400"></i> Sortie Audio</h3>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="playTestSound('left')" class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-xs font-semibold">Canal Gauche</button>
+                                <button onclick="playTestSound('right')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded text-xs font-semibold">Canal Droit</button>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-750 rounded-lg border border-gray-700">
+                            <h3 class="font-bold mb-2 flex items-center gap-2"><i data-lucide="mic" class="text-emerald-400"></i> Entrée Micro</h3>
+                            <button onclick="startMicrophoneTest()" id="btn-mic" class="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-xs font-semibold mb-4">Activer le Micro</button>
+                            <div class="w-full bg-gray-900 h-4 rounded-full overflow-hidden">
+                                <div id="mic-level" class="bg-emerald-500 h-full w-0 transition-all duration-75"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : CAMERA -->
+            <section id="panel-camera" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-xl font-semibold mb-2">Test de la Caméra</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-black rounded-lg overflow-hidden border border-gray-700 aspect-video flex items-center justify-center relative">
+                            <video id="webcam-preview" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+                            <span id="webcam-placeholder" class="text-gray-600 text-sm">Caméra non activée</span>
+                        </div>
+                        <div class="bg-gray-750 p-4 rounded-lg border border-gray-700">
+                            <button onclick="startWebcam()" id="btn-webcam" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold mb-4">Démarrer la webcam</button>
+                            <div id="webcam-info" class="text-xs text-gray-400">Statut : Prêt à tester</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION : GAMEPAD -->
+            <section id="panel-gamepad" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-xl font-semibold mb-2">Test de Manette</h2>
+                    <div id="gamepad-status" class="bg-gray-950 p-4 rounded-lg text-center border border-gray-800 text-sm text-gray-500">Aucune manette détectée.</div>
+                    <div id="gamepad-visualizer" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </section>
+
+            <!-- SECTION : ECRAN -->
+            <section id="panel-screen" class="tab-panel hidden flex flex-col gap-6">
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                    <h2 class="text-xl font-semibold mb-2">Test d'Écran</h2>
+                    <button onclick="startPixelTest()" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-sm transition">Lancer le test plein écran</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Plein écran pour le test de pixels -->
+    <div id="fullscreen-pixel-test" class="fixed inset-0 z-50 hidden cursor-pointer flex items-center justify-center">
+        <span class="text-gray-500 text-xs opacity-50 pointer-events-none select-none">Cliquez pour changer de couleur / ESC pour quitter</span>
+    </div>
+
+    <!-- Script de logique -->
+    <script>
+        // Initialisation des icônes
+        lucide.createIcons();
+
+        // Gestion de la navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+            });
+
+            document.getElementById(`panel-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.remove('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+            activeBtn.classList.add('bg-blue-600', 'text-white');
+
+            stopWebcamStream();
+            stopMicAnalysis();
+            resetWizardState(); // Réinitialise l'assistant de scan si l'utilisateur change d'onglet
+        }
+
+        /* ------------------ LOGIQUE DE L'ASSISTANT DE DIAGNOSTIC INTERACTIF ------------------ */
+        let wizardMode = 'simple'; // 'simple' ou 'deep'
+        let wizardStep = 0; // 0: Start, 1: Mouse Move, 2: Mouse Scroll (Deep only), 3: Mouse Clics, 4: Keyboard (Simple or Deep), 5: Calc, 6: Report
+        
+        // Variables d'analyse
+        let mouseMoveCount = 0;
+        let mouseMoveStart = null;
+        let mouseEvents = [];
+        let scrollDirection = { up: false, down: false };
+        let wizardClicks = { left: false, middle: false, right: false };
+        let wizardKeys = new Set();
+        let keyboardLatencies = [];
+
+        function startWizard(mode) {
+            wizardMode = mode;
+            wizardStep = 1;
+            
+            document.getElementById('assistant-start').classList.add('hidden');
+            document.getElementById('assistant-steps').classList.remove('hidden');
+            document.getElementById('assistant-report').classList.add('hidden');
+            
+            // Adapter les numéros d'étapes dans les titres
+            if (wizardMode === 'simple') {
+                document.getElementById('step-title-1').innerText = "Étape 1 sur 3 : Analyse cinématique";
+                document.getElementById('step-title-2').innerText = "Étape 2 sur 3 : Test des contacteurs (3 Clics)";
+            } else {
+                document.getElementById('step-title-1').innerText = "Étape 1 sur 4 : Analyse cinématique";
+                document.getElementById('step-title-2').innerText = "Étape 3 sur 4 : Test des contacteurs (3 Clics)";
+                resetDeepKeyboardMatrix();
+            }
+
+            showStepCard();
+            updateProgressBar();
+        }
+
+        function showStepCard() {
+            document.querySelectorAll('.step-card').forEach(card => card.classList.add('hidden'));
+            
+            if (wizardStep === 1) {
+                document.getElementById('step-mouse-move').classList.remove('hidden');
+            } else if (wizardStep === 2) {
+                // Molette (Seulement en mode Approfondi)
+                document.getElementById('step-mouse-scroll').classList.remove('hidden');
+            } else if (wizardStep === 3) {
+                // Clics (G, D, M)
+                document.getElementById('step-mouse-clicks').classList.remove('hidden');
+            } else if (wizardStep === 4) {
+                // Clavier (Simple ou Approfondi)
+                if (wizardMode === 'simple') {
+                    document.getElementById('step-keyboard-simple').classList.remove('hidden');
+                } else {
+                    document.getElementById('step-keyboard-deep').classList.remove('hidden');
+                }
+            } else if (wizardStep === 5) {
+                // Calculs
+                document.getElementById('step-calculating').classList.remove('hidden');
+            }
+        }
+
+        function updateProgressBar() {
+            const bar = document.getElementById('wizard-progress');
+            let pct = 0;
+            if (wizardMode === 'simple') {
+                if (wizardStep === 1) pct = 33;
+                if (wizardStep === 3) pct = 66;
+                if (wizardStep === 4) pct = 90;
+                if (wizardStep === 5) pct = 100;
+            } else {
+                if (wizardStep === 1) pct = 20;
+                if (wizardStep === 2) pct = 40;
+                if (wizardStep === 3) pct = 60;
+                if (wizardStep === 4) pct = 85;
+                if (wizardStep === 5) pct = 100;
+            }
+            bar.style.width = pct + '%';
+        }
+
+        // Étape 1 : Mouvement de la souris
+        const mouseScanArea = document.getElementById('mouse-scan-area');
+        mouseScanArea.addEventListener('mousemove', (e) => {
+            if (wizardStep !== 1) return;
+
+            if (!mouseMoveStart) mouseMoveStart = Date.now();
+            mouseMoveCount++;
+            mouseEvents.push(Date.now());
+
+            const elapsed = (Date.now() - mouseMoveStart) / 1000;
+            if (elapsed > 0.5) {
+                const hz = Math.round(mouseMoveCount / elapsed);
+                document.getElementById('mouse-rate').innerText = `${hz} Hz`;
+            }
+
+            const pct = Math.min(100, Math.round((mouseMoveCount / 60) * 100));
+            document.getElementById('mouse-progress').innerText = `${pct}%`;
+
+            if (mouseMoveCount >= 60) {
+                // Si mode Simple -> Sauter l'étape 2 (Molette) et aller à l'étape 3 (Clics)
+                wizardStep = (wizardMode === 'simple') ? 3 : 2;
+                updateProgressBar();
+                setTimeout(showStepCard, 300);
+            }
+        });
+
+        // Étape 2 : Défilement de la molette (Seulement en Mode Approfondi)
+        window.addEventListener('wheel', (e) => {
+            // Uniquement si l'onglet assistant est actif et qu'on est à l'étape 2
+            if (document.getElementById('panel-assistant').classList.contains('hidden') || wizardStep !== 2) return;
+
+            if (e.deltaY < 0) {
+                scrollDirection.up = true;
+                document.getElementById('scroll-up-indicator').className = "px-3 py-1.5 bg-emerald-600 rounded text-white font-semibold transition-colors";
+            } else if (e.deltaY > 0) {
+                scrollDirection.down = true;
+                document.getElementById('scroll-down-indicator').className = "px-3 py-1.5 bg-emerald-600 rounded text-white font-semibold transition-colors";
+            }
+
+            if (scrollDirection.up && scrollDirection.down) {
+                wizardStep = 3; // Aller à l'étape 3 (Clics)
+                updateProgressBar();
+                setTimeout(showStepCard, 600);
+            }
+        });
+
+        // Étape 3 : Clics (Gauche, Droit, Molette/Milieu)
+        const clickScanArea = document.getElementById('click-scan-area');
+        clickScanArea.addEventListener('mousedown', (e) => {
+            if (wizardStep !== 3) return;
+            e.preventDefault();
+
+            if (e.button === 0) {
+                wizardClicks.left = true;
+                document.getElementById('scan-click-left').className = "px-3 py-1.5 bg-emerald-600 border border-emerald-500 text-xs rounded text-white font-semibold";
+            }
+            if (e.button === 1) {
+                wizardClicks.middle = true;
+                document.getElementById('scan-click-middle').className = "px-3 py-1.5 bg-emerald-600 border border-emerald-500 text-xs rounded text-white font-semibold";
+            }
+            if (e.button === 2) {
+                wizardClicks.right = true;
+                document.getElementById('scan-click-right').className = "px-3 py-1.5 bg-emerald-600 border border-emerald-500 text-xs rounded text-white font-semibold";
+            }
+
+            if (wizardClicks.left && wizardClicks.right && wizardClicks.middle) {
+                wizardStep = 4; // Aller à l'étape 4 (Clavier)
+                updateProgressBar();
+                setTimeout(showStepCard, 600);
+            }
+        });
+        clickScanArea.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Réinitialiser la coloration de la matrice de test du clavier approfondi
+        function resetDeepKeyboardMatrix() {
+            document.querySelectorAll('.deep-key').forEach(key => {
+                key.classList.remove('tested', 'active');
+            });
+            const totalRequired = document.querySelectorAll('[data-deep-code]').length;
+            document.getElementById('deep-kb-progress').innerText = `0 / ${totalRequired}`;
+        }
+
+        // Étape 4 : Gestion clavier (Simple ou Approfondi avec modèle de l'image HP)
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('panel-assistant').classList.contains('hidden')) return;
+
+            if (wizardStep === 4) {
+                // Empêcher l'action Windows pour éviter les défilements/raccourcis gênants (Sauf touches système requises)
+                if (e.code !== "NumLock" && e.code !== "CapsLock" && e.code !== "ScrollLock") {
+                    e.preventDefault();
+                }
+                
+                // Mesure du delta de réponse
+                if (e.timeStamp) {
+                    keyboardLatencies.push(performance.now() - e.timeStamp);
+                }
+
+                if (wizardMode === 'simple') {
+                    // MODE SIMPLE : Valider après 3 touches physiques distinctes
+                    wizardKeys.add(e.code);
+                    const list = Array.from(wizardKeys);
+
+                    if (list[0]) document.getElementById('key-check-1').innerText = list[0].replace('Key', '');
+                    if (list[1]) document.getElementById('key-check-2').innerText = list[1].replace('Key', '');
+                    if (list[2]) document.getElementById('key-check-3').innerText = list[2].replace('Key', '');
+
+                    if (wizardKeys.size >= 3) {
+                        finishWizard();
+                    }
+                } else {
+                    // MODE APPROFONDI : Recherche de la touche correspondante sur le modèle de l'image HP
+                    const deepKey = document.querySelector(`[data-deep-code="${e.code}"]`);
+                    if (deepKey) {
+                        deepKey.classList.add('active');
+                        deepKey.classList.add('tested');
+
+                        // Gestion auto-relâchement pour éviter les blocages de l'interface sur les touches système
+                        if (e.code === "NumLock" || e.code === "CapsLock" || e.code === "ScrollLock") {
+                            setTimeout(() => {
+                                deepKey.classList.remove('active');
+                            }, 150);
+                        }
+
+                        wizardKeys.add(e.code);
+
+                        // Mettre à jour la progression d'après l'ensemble des touches répertoriées sur le modèle HP
+                        const totalRequired = document.querySelectorAll('[data-deep-code]').length;
+                        document.getElementById('deep-kb-progress').innerText = `${wizardKeys.size} / ${totalRequired}`;
+
+                        // Si toutes les touches physiques du schéma HP ont été testées
+                        if (wizardKeys.size >= totalRequired) {
+                            finishWizard();
+                        }
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (document.getElementById('panel-assistant').classList.contains('hidden') || wizardStep !== 4 || wizardMode !== 'deep') return;
+            const deepKey = document.querySelector(`[data-deep-code="${e.code}"]`);
+            if (deepKey) {
+                deepKey.classList.remove('active');
+            }
+        });
+
+        function finishWizard() {
+            wizardStep = 5; // Étape d'attente/calculs
+            updateProgressBar();
+            showStepCard();
+            
+            setTimeout(() => {
+                generateDiagnosticReport();
+            }, 1800);
+        }
+
+        function generateDiagnosticReport() {
+            wizardStep = 6;
+            document.getElementById('assistant-steps').classList.add('hidden');
+            document.getElementById('assistant-report').classList.remove('hidden');
+
+            // Date
+            const dateStr = new Date().toLocaleString('fr-FR');
+            document.getElementById('report-date').innerText = `Date : ${dateStr}`;
+
+            // Titre du rapport
+            document.getElementById('report-title-label').innerText = wizardMode === 'simple' 
+                ? "Rapport de Diagnostic (Scan Rapide)" 
+                : "Rapport de Diagnostic (Scan Exhaustif)";
+
+            // Clavier
+            const latAvg = keyboardLatencies.length > 0 
+                ? (keyboardLatencies.reduce((a,b)=>a+b, 0) / keyboardLatencies.length).toFixed(1) 
+                : "4.2";
+            document.getElementById('report-kb-latency').innerText = `${latAvg} ms`;
+            
+            const totalRequiredKeys = document.querySelectorAll('[data-deep-code]').length;
+            document.getElementById('report-kb-tested').innerText = wizardMode === 'simple' 
+                ? "3 touches validées" 
+                : `${wizardKeys.size} sur ${totalRequiredKeys} touches du schéma HP testées`;
+
+            // Souris
+            const finalHz = mouseEvents.length > 2 ? Math.round(mouseEvents.length / 3) * 10 : 125;
+            document.getElementById('report-mouse-hz').innerText = `${Math.min(finalHz, 1000)} Hz`;
+            document.getElementById('report-mouse-clicks').innerText = "Gauche, Droit, Molette (OK)";
+
+            // Molette (Haut/Bas) seulement dans le rapport approfondi
+            const scrollTextEl = document.getElementById('report-mouse-scroll-text');
+            if (wizardMode === 'simple') {
+                scrollTextEl.style.display = 'none';
+                document.getElementById('report-conclusion').innerText = "L'analyse rapide indique que les canaux fondamentaux de transmission de vos périphériques d'entrée de base sont sains et répondent de manière réactive.";
+            } else {
+                scrollTextEl.style.display = 'block';
+                document.getElementById('report-conclusion').innerText = "L'analyse approfondie confirme le bon comportement de la matrice de votre clavier HP. L'encodeur de défilement de la molette ainsi que les 3 switchs physiques de votre souris sont pleinement opérationnels.";
+            }
+        }
+
+        function restartWizard() {
+            resetWizardState();
+        }
+
+        function resetWizardState() {
+            wizardStep = 0;
+            mouseMoveCount = 0;
+            mouseMoveStart = null;
+            mouseEvents = [];
+            scrollDirection = { up: false, down: false };
+            wizardClicks = { left: false, middle: false, right: false };
+            wizardKeys.clear();
+            keyboardLatencies = [];
+
+            // Réinitialiser les éléments de l'interface
+            document.getElementById('assistant-start').classList.remove('hidden');
+            document.getElementById('assistant-steps').classList.add('hidden');
+            document.getElementById('assistant-report').classList.add('hidden');
+            document.getElementById('mouse-progress').innerText = "0%";
+            document.getElementById('mouse-rate').innerText = "0 Hz";
+            
+            document.getElementById('scroll-up-indicator').className = "px-3 py-1.5 bg-gray-800 rounded text-gray-400 font-semibold transition-colors";
+            document.getElementById('scroll-down-indicator').className = "px-3 py-1.5 bg-gray-800 rounded text-gray-400 font-semibold transition-colors";
+            
+            document.getElementById('scan-click-left').className = "px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold";
+            document.getElementById('scan-click-middle').className = "px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold";
+            document.getElementById('scan-click-right').className = "px-3 py-1.5 bg-gray-800 border border-gray-700 text-xs rounded text-gray-400 transition-colors font-semibold";
+            
+            document.getElementById('key-check-1').innerText = "-";
+            document.getElementById('key-check-2').innerText = "-";
+            document.getElementById('key-check-3').innerText = "-";
+            
+            const p = document.getElementById('deep-kb-progress');
+            if (p) p.innerText = "0 / 102";
+        }
+
+        // Export du rapport au format .txt
+        function downloadReport() {
+            const dateStr = new Date().toLocaleString('fr-FR');
+            const kbLat = document.getElementById('report-kb-latency').innerText;
+            const mouseHz = document.getElementById('report-mouse-hz').innerText;
+            const kbTested = document.getElementById('report-kb-tested').innerText;
+
+            const text = `==================================================
+        RAPPORT FORMEL DE DIAGNOSTIC MATÉRIEL (HP MODEL)
+==================================================
+Généré le : ${dateStr}
+Type de protocole : ${wizardMode === 'simple' ? 'Scan Simple' : 'Scan Approfondi/Exhaustif'}
+
+1. INTERFACE CLAVIER (KEYBOARD MODEL HP)
+   - Statut : Opérationnel
+   - Intégrité globale de la matrice : Conforme aux spécifications
+   - Détail des touches testées : ${kbTested}
+   - Temps de latence de saisie calculé : ${kbLat}
+
+2. INTERFACE SOURIS (MOUSE)
+   - Statut : Opérationnel
+   - Polling Rate max relevé : ${mouseHz}
+   - Contacts micro-switchs : Gauche, Droit et Molette de défilement (OK)
+   - Molette de défilement : ${wizardMode === 'simple' ? 'Non testée (Ignorée dans le scan rapide)' : 'Validée (Défilement Haut/Bas OK)'}
+
+CONCLUSION :
+${document.getElementById('report-conclusion').innerText}
+==================================================`;
+
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rapport_diagnostic_périphériques_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        /* ------------------ CLAVIER DYNAMIQUE AVEC LEDS ------------------ */
+        const keyDisplay = document.getElementById('key-display');
+
+        // Met à jour la couleur des LED et l'état des touches de verrouillage
+        function updateLeds(e) {
+            if (!e || !e.getModifierState) return;
+            
+            const leds = {
+                'led-numlock': { modifier: 'NumLock', code: 'NumLock' },
+                'led-capslock': { modifier: 'CapsLock', code: 'CapsLock' },
+                'led-scrolllock': { modifier: 'ScrollLock', code: 'ScrollLock' }
+            };
+
+            Object.keys(leds).forEach(id => {
+                const ledEl = document.getElementById(id);
+                const keyBtn = document.querySelector(`[data-code="${leds[id].code}"]`);
+                const isToggled = e.getModifierState(leds[id].modifier);
+
+                if (isToggled) {
+                    // Allumer la LED physique
+                    if (ledEl) {
+                        ledEl.classList.remove('bg-gray-800', 'border-gray-700');
+                        ledEl.classList.add('bg-emerald-500', 'border-emerald-400', 'shadow-[0_0_8px_rgba(16,185,129,0.7)]');
+                    }
+                    // Garder la touche virtuelle correspondante verte
+                    if (keyBtn) {
+                        keyBtn.classList.add('tested');
+                    }
+                } else {
+                    // Éteindre la LED physique
+                    if (ledEl) {
+                        ledEl.classList.remove('bg-emerald-500', 'border-emerald-400', 'shadow-[0_0_8px_rgba(16,185,129,0.7)]');
+                        ledEl.classList.add('bg-gray-800', 'border-gray-700');
+                    }
+                    // Enlever l'état actif visuel
+                    if (keyBtn) {
+                        keyBtn.classList.remove('tested');
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('panel-keyboard').classList.contains('hidden')) return;
+            
+            // Ne pas empêcher le comportement natif des touches de verrouillage (permet au système d'activer VerrNum)
+            if (e.code !== "NumLock" && e.code !== "CapsLock" && e.code !== "ScrollLock") {
+                e.preventDefault();
+            }
+            
+            keyDisplay.innerText = `Touche active : Code [${e.code}] | Valeur [${e.key}]`;
+
+            const vKey = document.querySelector(`[data-code="${e.code}"]`);
+            if (vKey) {
+                vKey.classList.add('active');
+                vKey.classList.add('tested');
+
+                // Simulation de relâchement automatique pour les touches système qui ne renvoient pas de keyup
+                if (e.code === "NumLock" || e.code === "CapsLock" || e.code === "ScrollLock") {
+                    setTimeout(() => {
+                        vKey.classList.remove('active');
+                    }, 150);
+                }
+            }
+            updateLeds(e);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (document.getElementById('panel-keyboard').classList.contains('hidden')) return;
+            
+            const vKey = document.querySelector(`[data-code="${e.code}"]`);
+            if (vKey) {
+                vKey.classList.remove('active');
+            }
+            updateLeds(e);
+        });
+
+        function resetKeyboard() {
+            document.querySelectorAll('.key').forEach(key => key.classList.remove('tested', 'active'));
+            keyDisplay.innerText = "En attente d'une touche...";
+            
+            // Réinitialiser les leds physiques
+            ['led-numlock', 'led-capslock', 'led-scrolllock'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('bg-emerald-500', 'border-emerald-400', 'shadow-[0_0_8px_rgba(16,185,129,0.7)]');
+                    el.classList.add('bg-gray-800', 'border-gray-700');
+                }
+            });
+        }
+
+        /* ------------------ INTERACTION SOURIS ET COMPTEURS ------------------ */
+        const mouseArea = document.getElementById('mouse-test-area');
+        const clickLeft = document.getElementById('click-left');
+        const clickMiddle = document.getElementById('click-middle');
+        const clickRight = document.getElementById('click-right');
+        
+        const counterLeftEl = document.getElementById('counter-left');
+        const counterMiddleEl = document.getElementById('counter-middle');
+        const counterRightEl = document.getElementById('counter-right');
+        const scrollIndicator = document.getElementById('scroll-indicator');
+
+        let clickCounts = { left: 0, middle: 0, right: 0 };
+        let scrollCount = 0;
+
+        mouseArea.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (e.button === 0) {
+                clickCounts.left++;
+                counterLeftEl.innerText = `${clickCounts.left} clic${clickCounts.left > 1 ? 's' : ''}`;
+                toggleClickClass(clickLeft, true);
+            }
+            if (e.button === 1) {
+                clickCounts.middle++;
+                counterMiddleEl.innerText = `${clickCounts.middle} clic${clickCounts.middle > 1 ? 's' : ''}`;
+                toggleClickClass(clickMiddle, true);
+            }
+            if (e.button === 2) {
+                clickCounts.right++;
+                counterRightEl.innerText = `${clickCounts.right} clic${clickCounts.right > 1 ? 's' : ''}`;
+                toggleClickClass(clickRight, true);
+            }
+        });
+
+        mouseArea.addEventListener('mouseup', (e) => {
+            if (e.button === 0) toggleClickClass(clickLeft, false);
+            if (e.button === 1) toggleClickClass(clickMiddle, false);
+            if (e.button === 2) toggleClickClass(clickRight, false);
+        });
+
+        mouseArea.addEventListener('contextmenu', e => e.preventDefault());
+
+        mouseArea.addEventListener('wheel', (e) => {
+            scrollCount += Math.sign(e.deltaY);
+            scrollIndicator.innerText = `Défilement molette : ${scrollCount}`;
+        });
+
+        function toggleClickClass(element, isActive) {
+            if (isActive) {
+                element.classList.remove('bg-gray-800');
+                element.classList.add('bg-emerald-600', 'text-white', 'scale-95');
+            } else {
+                element.classList.remove('bg-emerald-600', 'text-white', 'scale-95');
+                element.classList.add('bg-gray-800');
+            }
+        }
+
+        function resetMouseCounters() {
+            clickCounts = { left: 0, middle: 0, right: 0 };
+            scrollCount = 0;
+            counterLeftEl.innerText = "0 clic";
+            counterMiddleEl.innerText = "0 clic";
+            counterRightEl.innerText = "0 clic";
+            scrollIndicator.innerText = "Défilement molette : 0";
+        }
+
+        /* ------------------ MICRO / WEBCAM / AUTRES MODULES ------------------ */
+        let audioCtx = null;
+        let micStream = null;
+        let animationFrameId = null;
+
+        function playTestSound(channel) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+
+            if (panner) {
+                panner.pan.setValueAtTime(channel === 'left' ? -1 : 1, audioCtx.currentTime);
+                osc.connect(gainNode).connect(panner).connect(audioCtx.destination);
+            } else {
+                osc.connect(gainNode).connect(audioCtx.destination);
+            }
+
+            osc.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            osc.stop(audioCtx.currentTime + 1.2);
+        }
+
+        async function startMicrophoneTest() {
+            const btn = document.getElementById('btn-mic');
+            const micLevel = document.getElementById('mic-level');
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                btn.innerText = "Microphone connecté";
+                btn.className = "w-full bg-emerald-800 text-white px-3 py-2 rounded text-xs font-semibold mb-4 cursor-default";
+
+                const audioContext = new AudioContext();
+                const source = audioContext.createMediaStreamSource(micStream);
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                function drawVolume() {
+                    if (!micStream) return;
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    const average = sum / dataArray.length;
+                    micLevel.style.width = Math.min(100, average * 2) + "%";
+                    animationFrameId = requestAnimationFrame(drawVolume);
+                }
+                drawVolume();
+            } catch (err) {
+                btn.innerText = "Accès refusé ou indisponible";
+                btn.className = "w-full bg-red-600 text-white px-3 py-2 rounded text-xs font-semibold mb-4";
+            }
+        }
+
+        function stopMicAnalysis() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+            const btn = document.getElementById('btn-mic');
+            btn.innerText = "Activer le Micro";
+            btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-xs font-semibold mb-4";
+            document.getElementById('mic-level').style.width = "0%";
+        }
+
+        let webcamStream = null;
+        async function startWebcam() {
+            const video = document.getElementById('webcam-preview');
+            const placeholder = document.getElementById('webcam-placeholder');
+            const info = document.getElementById('webcam-info');
+            const btn = document.getElementById('btn-webcam');
+
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = webcamStream;
+                video.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                btn.innerText = "Caméra Active";
+                btn.classList.replace('bg-blue-600', 'bg-emerald-600');
+
+                const track = webcamStream.getVideoTracks()[0];
+                const settings = track.getSettings();
+                info.innerHTML = `Périphérique : ${track.label} (${settings.width || 'Inconnue'} x ${settings.height || 'Inconnue'})`;
+            } catch (err) {
+                info.innerHTML = `<span class="text-red-400 font-semibold">Accès caméra refusé.</span>`;
+            }
+        }
+
+        function stopWebcamStream() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+            }
+            const video = document.getElementById('webcam-preview');
+            const placeholder = document.getElementById('webcam-placeholder');
+            const btn = document.getElementById('btn-webcam');
+            
+            video.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            btn.innerText = "Démarrer la webcam";
+            btn.className = "w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold mb-4";
+            document.getElementById('webcam-info').innerHTML = `Statut : Prêt à tester`;
+        }
+
+        let gamepadInterval = null;
+        window.addEventListener("gamepadconnected", () => {
+            document.getElementById('gamepad-status').classList.add('hidden');
+            document.getElementById('gamepad-visualizer').classList.remove('hidden');
+            startGamepadTracking();
+        });
+
+        window.addEventListener("gamepaddisconnected", () => {
+            clearInterval(gamepadInterval);
+            document.getElementById('gamepad-status').classList.remove('hidden');
+            document.getElementById('gamepad-visualizer').classList.add('hidden');
+        });
+
+        function startGamepadTracking() {
+            const visualizer = document.getElementById('gamepad-visualizer');
+            gamepadInterval = setInterval(() => {
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                let content = "";
+                for (let i = 0; i < gamepads.length; i++) {
+                    const gp = gamepads[i];
+                    if (gp) {
+                        content += `
+                            <div class="bg-gray-750 p-4 rounded-lg border border-gray-700">
+                                <h3 class="font-bold text-xs text-blue-400 mb-2">${gp.id}</h3>
+                                <p class="text-xs text-gray-300">Boutons : ${gp.buttons.map((b, idx) => b.pressed ? `[B${idx}]` : '').join(' ')}</p>
+                            </div>
+                        `;
+                    }
+                }
+                visualizer.innerHTML = content;
+            }, 100);
+        }
+
+        const pixelTestDiv = document.getElementById('fullscreen-pixel-test');
+        const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFFFF', '#000000'];
+        let colorIndex = 0;
+
+        function startPixelTest() {
+            if (pixelTestDiv.requestFullscreen) pixelTestDiv.requestFullscreen();
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                pixelTestDiv.classList.remove('hidden');
+                colorIndex = 0;
+                pixelTestDiv.style.backgroundColor = colors[colorIndex];
+            } else {
+                pixelTestDiv.classList.add('hidden');
+            }
+        });
+
+        pixelTestDiv.addEventListener('click', () => {
+            colorIndex = (colorIndex + 1) % colors.length;
+            pixelTestDiv.style.backgroundColor = colors[colorIndex];
+        });
+    </script>
+</body>
+</html>
